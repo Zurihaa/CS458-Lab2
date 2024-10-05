@@ -1,6 +1,9 @@
-#pip install cryptodome
-import Crypto
-print(Crypto.__version__)
+import string
+import random
+from Crypto.Cipher import AES, DES, DES3
+from Crypto.Util.Padding import pad, unpad
+from Crypto.Random import get_random_bytes
+import base64
 
 
 def shiftcipher(text,key):
@@ -199,6 +202,7 @@ def doubletranspositiondecrypt(text, row, column, row_pattern:list, col_pattern:
 
     return ciphertext
 
+#Reference from https://www.geeksforgeeks.org/vigenere-cipher/
 def vigenerecipher(text, key):
 
     text_key = (key * (len(text) // len(key))) + key[:len(text) % len(key)]
@@ -232,7 +236,120 @@ def vigeneredecrypt(text, key):
     
     return decrypttext
 
+#Reference from https://stackoverflow.com/questions/59925060/des-encryption-in-python
+def aes_encrypt(text, key, mode):
+    if mode == "ECB":
+        aes = AES.new(key, AES.MODE_ECB)
+        padded_text = pad(text.encode(), AES.block_size)
+        encrypted_text = aes.encrypt(padded_text)
+    elif mode == "CBC":
+        iv = get_random_bytes(16)
+        aes = AES.new(key, AES.MODE_CBC, iv)
+        padded_text = pad(text.encode(), AES.block_size)
+        encrypted_text = aes.encrypt(padded_text)
+    elif mode == "CFB":
+        iv = get_random_bytes(16)
+        aes = AES.new(key, AES.MODE_CFB, iv)
+        padded_text = pad(text.encode(), AES.block_size)
+        encrypted_text = aes.encrypt(padded_text)
+    return base64.b64encode(encrypted_text).decode()
 
+def aes_decrypt(encrypted_text, key, mode):
+    encrypted_text = base64.b64decode(encrypted_text)
+
+    if mode == "ECB":
+        aes = AES.new(key, AES.MODE_ECB)
+        decrypted_padded_text = aes.decrypt(encrypted_text)
+        return unpad(decrypted_padded_text, AES.block_size).decode()
+
+    elif mode == "CBC":
+        if len(encrypted_text) < 16:
+            raise ValueError("Invalid encrypted data")
+        iv = encrypted_text[:16]
+        aes = AES.new(key, AES.MODE_CBC, iv)
+        decrypted_padded_text = aes.decrypt(encrypted_text[16:])
+        return unpad(decrypted_padded_text, AES.block_size).decode()
+
+    elif mode == "CFB":
+        if len(encrypted_text) < 16:
+            raise ValueError("Invalid encrypted data")
+        iv = encrypted_text[:16]
+        decrypted_text = aes.decrypt(encrypted_text[16:])
+        return decrypted_text.decode()
+
+def des_encrypt(text, key, mode):
+    if mode == "ECB":
+        des = DES.new(key, DES.MODE_ECB)
+        padded_text = pad(text.encode(), DES.block_size)
+        encrypted_text = des.encrypt(padded_text)
+    elif mode == "CBC":
+        iv = get_random_bytes(8)
+        des = DES.new(key, DES.MODE_CBC, iv)
+        padded_text = pad(text.encode(), DES.block_size)
+        encrypted_text = des.encrypt(padded_text)
+    elif mode == "CFB":
+        iv = get_random_bytes(8)
+        des = DES.new(key, DES.MODE_CFB, iv)
+        padded_text = pad(text.encode(), DES.block_size)
+        encrypted_text = des.encrypt(padded_text)
+    return base64.b64encode(encrypted_text).decode()
+
+def des_decrypt(text, key, mode):
+    encrypted = base64.b64decode(text)
+    
+    if mode == "ECB":
+        des = DES.new(key, DES.MODE_ECB)
+        decrypted_data = des.decrypt(encrypted)
+        plaintext = unpad(decrypted_data, DES.block_size)
+        plaintext = decrypted_data
+    elif mode == "CBC":
+        iv = key
+        des = DES.new(key, DES.MODE_CBC, iv)
+        decrypted_data = des.decrypt(encrypted)
+        plaintext = unpad(decrypted_data, DES.block_size)
+        plaintext = decrypted_data
+    elif mode == "CFB":
+        iv = key 
+        des = DES.new(key, DES.MODE_CFB, iv)
+        plaintext = des.decrypt(encrypted)    
+    return plaintext.decode(errors="ignore")
+
+def des3_encrypt(text, key, mode):
+    if mode == "ECB":
+        des3 = DES3.new(key, DES3.MODE_ECB)
+        padded_text = pad(text.encode(), DES3.block_size)
+        encrypted_text = des3.encrypt(padded_text)
+    elif mode == "CBC":
+        iv = get_random_bytes(8)
+        des3 = DES3.new(key, DES3.MODE_CBC, iv)
+        padded_text = pad(text.encode(), DES3.block_size)
+        encrypted_text = des3.encrypt(padded_text)
+    elif mode == "CFB":
+        iv = get_random_bytes(8)
+        des3 = DES.new(key, DES3.MODE_CFB, iv)
+        padded_text = pad(text.encode(), DES3.block_size)
+        encrypted_text = des3.encrypt(padded_text)
+    return base64.b64encode(encrypted_text).decode()
+
+def des3_decrypt(text, key, mode):
+    encrypted = base64.b64decode(text)
+    
+    if mode == "ECB":
+        des3 = DES3.new(key, DES3.MODE_ECB)
+        decrypted_data = des3.decrypt(encrypted)
+        plaintext = unpad(decrypted_data, DES3.block_size)
+        plaintext = decrypted_data
+    elif mode == "CBC":
+        iv = key
+        des3 = DES3.new(key, DES3.MODE_CBC, iv)
+        decrypted_data = des3.decrypt(encrypted)
+        plaintext = unpad(decrypted_data, DES3.block_size)
+        plaintext = decrypted_data
+    elif mode == "CFB":
+        iv = key 
+        des3 = DES3.new(key, DES3.MODE_CFB, iv)
+        plaintext = des3.decrypt(encrypted)    
+    return plaintext.decode(errors="ignore")
 
 def main():
     while True:
@@ -284,14 +401,9 @@ def main():
                     print("Invalid input. Please enter an int for key.")
             print("Ciphertext: ", shiftcipher(plaintext, n))
         elif option == 2:
-            while True:
-                try:
-                    key = dict(input("Enter your key: "))
-                    if key == None:
-                        key = permutation_alphabet()
-                    break
-                except ValueError as e:
-                    print("Invalid input. Try Again.")
+            key = permutation_alphabet()
+
+            print("This is your keys:", key)
             print("Ciphertext: ", permutationcipher(plaintext, key))
         elif option == 3:
             while True:
@@ -356,11 +468,74 @@ def main():
                     print("Invalid input. Try Again.")
             print(vigenerecipher(plaintext, key))
         elif option == 6:
-            return 1
+            while True:
+                try:
+                    mode = str(input("Enter your mode (ECB, CBC or CFB): "))
+                    if mode not in ["ECB", "CBC", "CFB"]:
+                        raise ValueError("Try Again")
+                    break
+                except ValueError as e:
+                    print("Invalid input. Try Again.")
+            
+            key = input("Enter a 16, 24 or 32-byte key: ").encode()
+
+            while True:
+                try:
+                    if not isinstance(key, bytes):
+                        raise ValueError("Key must be of type 'bytes'")
+                    if len(key) not in {16, 24, 32}:
+                        raise ValueError("Key must be 16, 24 or 32 bytes long")
+                    break
+                except ValueError as e:
+                    print("Invalid input. Try Again.")
+            
+            print("Encrypted text: ", aes_encrypt(text, key, mode))
         elif option == 7:
-            return 1
+            while True:
+                try:
+                    mode = str(input("Enter your mode (ECB, CBC or CFB): "))
+                    if mode not in ["ECB", "CBC", "CFB"]:
+                        raise ValueError("Try Again")
+                    break
+                except ValueError as e:
+                    print("Invalid input. Try Again.")
+            
+            key = input("Enter a 8-byte key: ").encode()
+
+            while True:
+                try:
+                    if not isinstance(key, bytes):
+                        raise ValueError("Key must be of type 'bytes'")
+                    if len(key) not in {8}:
+                        raise ValueError("Key must be 8 bytes long")
+                    break
+                except ValueError as e:
+                    print("Invalid input. Try Again.")
+            
+            print("Encrypted text: ", des_encrypt(text, key, mode))
         elif option == 8:
-            return 1
+            while True:
+                try:
+                    mode = str(input("Enter your mode (ECB, CBC or CFB): "))
+                    if mode not in ["ECB", "CBC", "CFB"]:
+                        raise ValueError("Try Again")
+                    break
+                except ValueError as e:
+                    print("Invalid input. Try Again.")
+            
+            key = input("Enter a 16 or 24-byte key: ").encode()
+
+            while True:
+                try:
+                    if not isinstance(key, bytes):
+                        raise ValueError("Key must be of type 'bytes'")
+                    if len(key) not in {16, 24}:
+                        raise ValueError("Key must be 16 or 24 bytes long")
+                    break
+                except ValueError as e:
+                    print("Invalid input. Try Again.")
+            
+            print("Encrypted text: ", des3_encrypt(text, key, mode))
         
     elif choice == 2:
         print("Choose your decryption mode:")
@@ -372,6 +547,15 @@ def main():
         print("6. AES")
         print("7. DES")
         print("8. 3DES")
+
+        while True:
+            try:
+                option = int(input("Enter from 1 to 8: "))
+                if choice not in [1, 2, 3, 4, 5, 6, 7, 8]:
+                    raise ValueError("Choice must be from 1 to 8.")
+                break
+            except ValueError as e:
+                print("Invalid input. Choice must be from 1 to 8.")
 
         if option == 1:
             while True:
@@ -387,8 +571,8 @@ def main():
             while True:
                 try:
                     key = dict(input("Enter your key: "))
-                    if key == None:
-                        key = permutation_alphabet()
+                    if key is not dict:
+                        raise ValueError("Please enter the key")
                     break
                 except ValueError as e:
                     print("Invalid input. Try Again.")
@@ -456,10 +640,74 @@ def main():
                     print("Invalid input. Try Again.")
             print(vigeneredecrypt(plaintext, key))
         elif option == 6:
-            return 1
-        elif option == 7:
-            return 1
-        elif option == 8:
-            return 1
+            while True:
+                try:
+                    mode = str(input("Enter your mode (ECB, CBC or CFB): "))
+                    if mode not in ["ECB", "CBC", "CFB"]:
+                        raise ValueError("Try Again")
+                    break
+                except ValueError as e:
+                    print("Invalid input. Try Again.")
+            
+            key = input("Enter a 16 or 24-byte key: ").encode()
 
-main()
+            while True:
+                try:
+                    if not isinstance(key, bytes):
+                        raise ValueError("Key must be of type 'bytes'")
+                    if len(key) not in {16, 24, 32}:
+                        raise ValueError("Key must be 16, 24 or 32 bytes long")
+                    break
+                except ValueError as e:
+                    print("Invalid input. Try Again.")
+            
+            print("Decrypted text: ", aes_decrypt(text, key, mode))
+        elif option == 7:
+            while True:
+                try:
+                    mode = str(input("Enter your mode (ECB, CBC or CFB): "))
+                    if mode not in ["ECB", "CBC", "CFB"]:
+                        raise ValueError("Try Again")
+                    break
+                except ValueError as e:
+                    print("Invalid input. Try Again.")
+            
+            key = input("Enter a 8-byte key: ").encode()
+
+            while True:
+                try:
+                    if not isinstance(key, bytes):
+                        raise ValueError("Key must be of type 'bytes'")
+                    if len(key) not in {8}:
+                        raise ValueError("Key must be 8 bytes long")
+                    break
+                except ValueError as e:
+                    print("Invalid input. Try Again.")
+            
+            print("Decrypted text: ", des_decrypt(text, key, mode))
+        elif option == 8:
+            while True:
+                try:
+                    mode = str(input("Enter your mode (ECB, CBC or CFB): "))
+                    if mode not in ["ECB", "CBC", "CFB"]:
+                        raise ValueError("Try Again")
+                    break
+                except ValueError as e:
+                    print("Invalid input. Try Again.")
+            
+            key = input("Enter a 16 or 24-byte key: ").encode()
+
+            while True:
+                try:
+                    if not isinstance(key, bytes):
+                        raise ValueError("Key must be of type 'bytes'")
+                    if len(key) not in {16, 24}:
+                        raise ValueError("Key must be 16 or 24 bytes long")
+                    break
+                except ValueError as e:
+                    print("Invalid input. Try Again.")
+            
+            print("Decrypted text: ", des3_decrypt(text, key, mode))
+
+if __name__ == "__main__":
+    main()
